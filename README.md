@@ -1,9 +1,9 @@
-# Malaysia E-Commerce Demand Forecasting & Inventory Optimization
+# E-Commerce Demand Forecasting & Inventory Optimization
 
 Demamd forecating and inventory optimizatiopn system for e-commerce using machine learning to predict product demand and  recommend optimal stock levels.
 
 ## tech Stack 
-- Python (pandas, scikit-learn, XGBoost, Prophet)
+- Python (pandas, scikit-learn, XGBoost)
 - Streamlit (interactive dashboard)
 - SQL-style data manipulation
 
