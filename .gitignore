@@ -1,0 +1,16 @@
+# Data files
+data/raw
+data/processed
+
+# Python]
+--pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Environment
+.env
+venv/
+
+# OS files
+.DS_Store
+Thumbs.db
