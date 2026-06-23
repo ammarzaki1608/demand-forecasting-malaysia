@@ -9,7 +9,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 st.set_page_config(
-    page_title="Malaysia E-Commerce Demand Forecasting",
+    page_title="E-Commerce Demand Forecasting",
     page_icon="📦",
     layout="wide"
 )
@@ -45,8 +45,8 @@ service_level = st.sidebar.slider("Target Service Level",
                                    value=0.95, step=0.01,
                                    format="%.0f%%")
 
-st.title("🇲🇾 Malaysia E-Commerce Demand Forecasting")
-st.markdown("Demand forecasting and inventory optimization for e-commerce operations")
+st.title("📦 E-Commerce Demand Forecasting & Inventory Optimization")
+st.markdown("Demand forecasting and inventory optimization using real-world e-commerce transaction data")
 st.markdown("---")
 
 tab1, tab2, tab3 = st.tabs(["📈 Demand Overview", "🔮 Forecast", "📦 Inventory Policy"])

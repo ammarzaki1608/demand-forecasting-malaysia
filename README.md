@@ -1,9 +1,19 @@
-# 🇲🇾 Malaysia E-Commerce Demand Forecasting & Inventory Optimization
+# 📦 E-Commerce Demand Forecasting & Inventory Optimization
 
 A data science project that combines machine learning forecasting with 
-inventory optimization to reduce supply chain costs for e-commerce operations.
+inventory optimization to reduce supply chain costs in e-commerce operations.
 
 ---
+
+## 📂 Dataset
+**Source:** [Brazilian E-Commerce by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)  
+Real-world e-commerce transaction data from Olist, a Brazilian marketplace 
+platform — containing 110K orders across 2 years with product, seller, 
+payment, and review information.
+
+The demand forecasting and inventory optimization methodology demonstrated 
+here is platform and geography agnostic — directly applicable to Malaysian 
+e-commerce platforms such as Shopee, Lazada, and Zalora.
 
 ## 💼 Business Problem
 E-commerce companies face a constant tradeoff — hold too much stock and 
