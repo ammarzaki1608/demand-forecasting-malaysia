@@ -1,12 +1,18 @@
+import os
+import sys
 import streamlit as st
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
-from xgboost import XGBRegressor
 from sklearn.metrics import mean_absolute_error
-from scipy.stats import norm
 import warnings
 warnings.filterwarnings('ignore')
+
+SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(SRC_DIR)
+
+from data import daily_demand_for_category
+from forecasting import create_features, FEATURE_COLS, train_xgboost
+from inventory import compute_safety_stock, compute_reorder_point
 
 st.set_page_config(
     page_title="E-Commerce Demand Forecasting",
@@ -16,7 +22,8 @@ st.set_page_config(
 
 @st.cache_data
 def load_data():
-    df = pd.read_csv('../data/processed/forecast_ready.csv')
+    csv_path = os.path.join(SRC_DIR, '..', 'data', 'processed', 'forecast_ready.csv')
+    df = pd.read_csv(csv_path)
     df['order_date'] = pd.to_datetime(df['order_date'])
     df['order_purchase_timestamp'] = pd.to_datetime(df['order_purchase_timestamp'])
     return df
@@ -55,10 +62,7 @@ with tab1:
     st.subheader(f"Demand Overview — {selected_category}")
     
     # Daily demand for selected category
-    cat_data = (df[df['product_category_name_english'] == selected_category]
-                .groupby('order_date')
-                .agg(order_count=('order_id', 'nunique'))
-                .reset_index())
+    cat_data = daily_demand_for_category(df, selected_category)
     
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -86,45 +90,17 @@ with tab2:
 
     @st.cache_data
     def run_forecast(category):
-        # Get category data
-        cat = (df[df['product_category_name_english'] == category]
-               .groupby('order_date')
-               .agg(order_count=('order_id', 'nunique'))
-               .reset_index())
+        cat = daily_demand_for_category(df, category)
+        cat_featured = create_features(cat).dropna()
 
-        date_range = pd.date_range(cat['order_date'].min(), cat['order_date'].max())
-        cat = (cat.set_index('order_date')
-               .reindex(date_range)
-               .fillna(0)
-               .rename_axis('order_date')
-               .reset_index())
+        split = cat_featured['order_date'].max() - pd.Timedelta(days=60)
+        train = cat_featured[cat_featured['order_date'] <= split]
+        test = cat_featured[cat_featured['order_date'] > split]
 
-        # Features
-        cat['dayofweek'] = cat['order_date'].dt.dayofweek
-        cat['month'] = cat['order_date'].dt.month
-        cat['day'] = cat['order_date'].dt.day
-        cat['is_weekend'] = (cat['dayofweek'] >= 5).astype(int)
-        for lag in [7, 14, 28]:
-            cat[f'lag_{lag}'] = cat['order_count'].shift(lag)
-        for window in [7, 14, 30]:
-            cat[f'rolling_mean_{window}'] = cat['order_count'].shift(1).rolling(window).mean()
-
-        cat = cat.dropna()
-
-        feature_cols = ['dayofweek', 'month', 'day', 'is_weekend',
-                        'lag_7', 'lag_14', 'lag_28',
-                        'rolling_mean_7', 'rolling_mean_14', 'rolling_mean_30']
-
-        split = cat['order_date'].max() - pd.Timedelta(days=60)
-        train = cat[cat['order_date'] <= split]
-        test = cat[cat['order_date'] > split]
-
-        model = XGBRegressor(n_estimators=200, max_depth=5, 
-                             learning_rate=0.05, random_state=42)
-        model.fit(train[feature_cols], train['order_count'])
+        _, forecast = train_xgboost(train, test, FEATURE_COLS)
 
         test = test.copy()
-        test['forecast'] = model.predict(test[feature_cols]).clip(min=0)
+        test['forecast'] = forecast
         mae = mean_absolute_error(test['order_count'], test['forecast'])
 
         return test, mae
@@ -148,17 +124,13 @@ with tab2:
 with tab3:
     st.subheader(f"Inventory Policy — {selected_category}")
 
-    cat_inv = (df[df['product_category_name_english'] == selected_category]
-               .groupby('order_date')
-               .agg(order_count=('order_id', 'nunique'))
-               .reset_index())
+    cat_inv = daily_demand_for_category(df, selected_category)
 
     avg_demand = cat_inv['order_count'].mean()
     std_demand = cat_inv['order_count'].std()
-    z = norm.ppf(service_level)
 
-    safety_stock = z * std_demand * np.sqrt(lead_time)
-    reorder_point = (avg_demand * lead_time) + safety_stock
+    safety_stock = compute_safety_stock(std_demand, lead_time, service_level)
+    reorder_point = compute_reorder_point(avg_demand, lead_time, safety_stock)
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -170,10 +142,10 @@ with tab3:
 
     st.markdown("### Cost Comparison")
     
-    # Quick cost estimate
+    # Quick cost estimate (holding cost only; see notebooks/03 for the
+    # full simulation-based cost comparison including stockout/ordering cost)
     holding_cost = 0.50
-    stockout_cost = 15.00
-    
+
     optimized_inv = reorder_point
     naive_inv = avg_demand * 30
     

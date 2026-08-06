@@ -22,19 +22,20 @@ This project builds a forecast-driven inventory system that minimizes total
 cost while maintaining target service levels.
 
 ## 📊 Key Results
-- **RM 60,515 saved** over 180 days for a single product category
-- **97.2% service level** achieved vs 95% target
-- **73% reduction** in average inventory held (253 vs 942 units)
-- Annualized savings of approximately **RM 121,000 per category**
+- **RM 59,808 saved** (70.2%) over 180 days for a single product category
+- **100% service level** achieved vs 95% target
+- **71% reduction** in average inventory held (272 vs 942 units)
+- Annualized savings of approximately **RM 119,600 per category**
 
 ## 🛠️ Tech Stack
 | Tool | Purpose |
 |------|---------|
 | Python, Pandas, NumPy | Data processing & feature engineering |
 | XGBoost | ML-based demand forecasting |
-| Scikit-learn | Model evaluation |
+| Scikit-learn, SciPy | Model evaluation & safety-stock statistics |
 | Streamlit | Interactive dashboard |
 | Matplotlib, Seaborn | Data visualization |
+| Pytest | Unit tests for the inventory formulas |
 | Git & GitHub | Version control |
 
 ## 📁 Project Structure
@@ -48,9 +49,18 @@ demand-forecasting-malaysia/
 │   ├── 02_forecasting.ipynb      ← model building & comparison
 │   └── 03_inventory_optimization.ipynb  ← inventory policy & cost analysis
 ├── src/
-│   └── dashboard.py   ← Streamlit interactive dashboard
-├── output/            ← saved charts and visualizations
-└── requirements.txt   ← package dependencies
+│   ├── data.py         ← shared data-loading helpers
+│   ├── forecasting.py  ← shared feature engineering & model training
+│   ├── inventory.py    ← shared safety stock / reorder point / simulation logic
+│   └── dashboard.py    ← Streamlit interactive dashboard
+├── tests/
+│   └── test_inventory.py  ← regression tests for the safety-stock formula
+├── output/             ← saved charts and visualizations
+└── requirements.txt    ← package dependencies
+
+Notebooks and the dashboard both import their forecasting and inventory logic
+from `src/` rather than duplicating it, so a fix in one place applies
+everywhere.
 
 ## 🚀 How to Reproduce
 1. Clone this repository
@@ -66,10 +76,13 @@ demand-forecasting-malaysia/
 4. Download the dataset from [Kaggle — Brazilian E-Commerce by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)
    and place all CSV files into `data/raw/`
 5. Run notebooks in order (01 → 02 → 03)
-6. Launch the dashboard:
+6. Run the tests:
 ```bash
-   cd src
-   streamlit run dashboard.py
+   pytest tests/
+```
+7. Launch the dashboard:
+```bash
+   streamlit run src/dashboard.py
 ```
 
 ## 📓 Project Walkthrough
@@ -85,7 +98,14 @@ demand-forecasting-malaysia/
 - **Model complexity doesn't always win** — naive baseline outperformed 
   XGBoost on MAE with limited data, highlighting the importance of baselines
 - **Forecast-driven inventory beats fixed policies** — optimized policy 
-  achieved comparable service levels at 71% lower cost
+  matched the naive policy's service level at 70% lower cost
+- **Unit tests catch statistics bugs code review won't** — an earlier version
+  of the safety-stock calculation used `norm.pdf()` instead of `norm.ppf()`,
+  a one-character mix-up that understated safety stock by ~6x while still
+  running and producing plausible-looking numbers. It's now covered by
+  [`tests/test_inventory.py`](tests/test_inventory.py) and the calculation
+  lives in one shared module (`src/inventory.py`) instead of being
+  duplicated across notebooks and the dashboard
 
 ## 👤 Author
 **Ammar Zaki** 
